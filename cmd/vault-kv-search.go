@@ -13,12 +13,36 @@ import (
 
 type vaultClient struct {
 	logical       *vault.Logical
+	sys           *vault.Sys
+	configInput   *vault.MountConfigInput
 	searchString  string
+	showSecrets   bool
 	searchObjects []string
 	wg            sync.WaitGroup
 }
 
-func vaultKvSearch(args []string, searchObjects []string) {
+func (vc *vaultClient) getKvVersion(path string) int {
+	secret := strings.Split(path, "/")[0]
+	mounts, err := vc.sys.ListMounts()
+	if err != nil {
+		fmt.Printf("Error while getting mounts: %v\n", err)
+		os.Exit(1)
+	}
+
+	var version int
+	for mount := range mounts {
+		if strings.Contains(mount, secret) {
+			version, _ = strconv.Atoi(mounts[mount].Options["version"])
+		}
+	}
+
+	fmt.Printf("Store path %q, version: %v\n", secret, version)
+
+	return version
+}
+
+// VaultKvSearch is the main function
+func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 	config := vault.DefaultConfig()
 	config.Timeout = time.Second * 5
 
@@ -28,20 +52,95 @@ func vaultKvSearch(args []string, searchObjects []string) {
 	}
 
 	vc := vaultClient{
-		logical:      client.Logical(),
-		searchString: args[1],
+		logical:       client.Logical(),
+		sys:           client.Sys(),
+		searchString:  args[1],
 		searchObjects: searchObjects,
-		wg:           sync.WaitGroup{},
+		showSecrets:   showSecrets, //pragma: allowlist secret
+		wg:            sync.WaitGroup{},
 	}
 
-	fmt.Printf("Searching for substring '%s' against: %v\n", args[1], searchObjects)
 	startPath := args[0]
-	vc.readLeafs(startPath)
+	version := vc.getKvVersion(startPath)
+
+	fmt.Printf("Searching for substring '%s' against: %v\n", args[1], searchObjects)
+	fmt.Printf("Start path: %s\n", startPath)
+
+	if version > 1 {
+		startPath = strings.Replace(startPath, "/", "/metadata/", 1)
+	}
+
+	if ok := strings.HasSuffix(startPath, "/"); !ok {
+		startPath += "/"
+	}
+
+	vc.readLeafs(startPath, searchObjects, version)
 	vc.wg.Wait()
 }
 
-func (vc *vaultClient) readLeafs(path string) {
+func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObject string, key string, value string) {
+
+	if strings.Contains(dirEntry, vc.searchString) && searchObject == "path" {
+		if vc.showSecrets {
+			fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+		} else {
+			fmt.Printf("Path match:\n\tSecret: %v\n\n", fullPath)
+		}
+	}
+
+	if strings.Contains(key, vc.searchString) && searchObject == "key" {
+		if vc.showSecrets {
+			fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+		} else {
+			fmt.Printf("Key match:\n\tSecret: %v\n\n", fullPath)
+		}
+	}
+
+	if strings.Contains(value, vc.searchString) && searchObject == "value" {
+		if vc.showSecrets {
+			fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+		} else {
+			fmt.Printf("Value match:\n\tSecret: %v\n\n", fullPath)
+		}
+	}
+
+}
+
+func (vc *vaultClient) digDeeper(version int, data map[string]interface{}, dirEntry string, fullPath string, searchObject string) (key string, value string) {
+	var valueStringType string
+
+	for key, value := range data {
+		if version > 1 && key == "metadata" {
+			continue
+		}
+		switch v := value.(type) {
+		// Convert types to strings
+		case string:
+			valueStringType = value.(string)
+		case json.Number:
+			valueStringType = v.String()
+		case bool:
+			valueStringType = strconv.FormatBool(v)
+		case map[string]interface{}:
+			// Recurse
+			return vc.digDeeper(version, v, dirEntry, fullPath, searchObject)
+		// Needed when start from root of the store
+		case []interface{}:
+		case nil:
+		default:
+			fmt.Printf("I don't know what %T is\n", v)
+			os.Exit(1)
+		}
+		// Search matches
+		vc.secretMatch(dirEntry, fullPath, searchObject, key, valueStringType)
+	}
+
+	return key, valueStringType
+}
+
+func (vc *vaultClient) readLeafs(path string, searchObjects []string, version int) {
 	pathList, err := vc.logical.List(path)
+
 	if err != nil {
 		fmt.Printf("Failed to list: %s\n%s", vc.searchString, err)
 		os.Exit(1)
@@ -64,10 +163,14 @@ func (vc *vaultClient) readLeafs(path string) {
 			vc.wg.Add(1)
 			go func() {
 				defer vc.wg.Done()
-				vc.readLeafs(fullPath)
+				vc.readLeafs(fullPath, searchObjects, version)
 			}()
 
 		} else {
+			if version > 1 {
+				fullPath = strings.Replace(fullPath, "/metadata", "/data", 1)
+			}
+
 			secretInfo, err := vc.logical.Read(fullPath)
 			if err != nil {
 				fmt.Println(err)
@@ -75,29 +178,11 @@ func (vc *vaultClient) readLeafs(path string) {
 			}
 
 			for _, searchObject := range searchObjects {
-				// Convert types to strings
-				var valueStringType string
-				for key, value := range secretInfo.Data {
-					switch v := value.(type) {
-					case string:
-						valueStringType = value.(string)
-					case json.Number:
-						valueStringType = v.String()
-					case bool:
-						valueStringType = strconv.FormatBool(v)
-					default:
-						fmt.Printf("I don't know what %T is\n", v)
-						os.Exit(1)
-					}
-
-					if strings.Contains(valueStringType, vc.searchString) && searchObject == "value" {
-						fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
-					}
-
-					if strings.Contains(key, vc.searchString) && searchObject == "key" {
-						fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
-					}
+				if version > 1 {
+					fullPath = strings.Replace(fullPath, "/data", "", 1)
 				}
+				vc.digDeeper(version, secretInfo.Data, dirEntry, fullPath, searchObject)
+
 			}
 		}
 	}

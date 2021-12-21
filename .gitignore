@@ -18,4 +18,7 @@
 .idea
 *.iml
 
+bin/
+test/
+
 vault-kv-search
