@@ -31,7 +31,7 @@ OUTPUT=$(
 )
 RELEASE_ID=$(echo "$OUTPUT" | jq -r '.id')
 
-declare -a OSES=("linux" "darwin")
+declare -a OSES=("linux" "darwin" "windows")
 for os in "${OSES[@]}"; do
     TAR_FILENAME="vault-kv-search-${RELEASE}.${os}-${GOARCH}.tar.gz"
     export GOOS=$os

@@ -6,10 +6,10 @@ This tool is compatible with secrets kv v1 and v2.
 
 - Export or prepend command with VAULT_ADDR and your VAULT_TOKEN
 
-```
-export VAULT_ADDR=https://vaultserver:8200
-export VAULT_TOKEN=$(cat ~/.vault-token)
-```
+  ```
+  > export VAULT_ADDR=https://vaultserver:8200
+  > export VAULT_TOKEN=$(cat ~/.vault-token)
+  ```
 
 - Search values for the substring 'example.com':
 

@@ -55,7 +55,7 @@ Recursively search Hashicorp Vault for substring`,
 		return checkRequiredFlags(cmd)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		vaultKvSearch(args, searchObjects, showSecrets)
+		VaultKvSearch(args, searchObjects, showSecrets)
 	},
 	Args:    cobra.ExactArgs(2),
 	Example: "vault-kv-search kv/ foo",

@@ -36,12 +36,13 @@ func (vc *vaultClient) getKvVersion(path string) int {
 		}
 	}
 
-	fmt.Printf("Store path %s, version: %v\n", secret, version)
+	fmt.Printf("Store path %q, version: %v\n", secret, version)
 
 	return version
 }
 
-func vaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
+// VaultKvSearch is the main function
+func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 	config := vault.DefaultConfig()
 	config.Timeout = time.Second * 5
 
@@ -63,7 +64,7 @@ func vaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 	version := vc.getKvVersion(startPath)
 
 	fmt.Printf("Searching for substring '%s' against: %v\n", args[1], searchObjects)
-	fmt.Printf("StartPath: %s\n", startPath)
+	fmt.Printf("Start path: %s\n", startPath)
 
 	if version > 1 {
 		startPath = strings.Replace(startPath, "/", "/metadata/", 1)
@@ -123,6 +124,8 @@ func (vc *vaultClient) digDeeper(version int, data map[string]interface{}, dirEn
 		case map[string]interface{}:
 			// Recurse
 			return vc.digDeeper(version, v, dirEntry, fullPath, searchObject)
+		// Needed when start from root of the store
+		case []interface{}:
 		case nil:
 		default:
 			fmt.Printf("I don't know what %T is\n", v)
