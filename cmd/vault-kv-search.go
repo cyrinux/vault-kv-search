@@ -77,6 +77,32 @@ func vaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 	vc.wg.Wait()
 }
 
+func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObject string, valueStringType string, key string, value string) {
+	if strings.Contains(dirEntry, vc.searchString) && searchObject == "path" {
+		if showSecrets {
+			fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+		} else {
+			fmt.Printf("Path match:\n\tSecret: %v\n\n", fullPath)
+		}
+	}
+	if strings.Contains(key, vc.searchString) && searchObject == "key" {
+		if showSecrets {
+			fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+		} else {
+			fmt.Printf("Key match:\n\tSecret: %v\n\n", fullPath)
+		}
+	}
+
+	if strings.Contains(valueStringType, vc.searchString) && searchObject == "value" {
+		if showSecrets {
+			fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+		} else {
+			fmt.Printf("Value match:\n\tSecret: %v\n\n", fullPath)
+		}
+	}
+
+}
+
 func (vc *vaultClient) readLeafs(path string, searchObjects []string, version int) {
 	pathList, err := vc.logical.List(path)
 
@@ -140,30 +166,13 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 
 					if version > 1 {
 						fullPath = strings.Replace(fullPath, "/data", "", 1)
-					}
 
-					if strings.Contains(dirEntry, vc.searchString) && searchObject == "path" {
-						if showSecrets {
-							fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
-						} else {
-							fmt.Printf("Path match:\n\tSecret: %v\n\n", fullPath)
+						for key, v := range value.(map[string]interface{}) {
+							vc.secretMatch(dirEntry, fullPath, searchObject, valueStringType, key, fmt.Sprint(v))
 						}
-					}
 
-					if strings.Contains(key, vc.searchString) && searchObject == "key" {
-						if showSecrets {
-							fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
-						} else {
-							fmt.Printf("Key match:\n\tSecret: %v\n\n", fullPath)
-						}
-					}
-
-					if strings.Contains(valueStringType, vc.searchString) && searchObject == "value" {
-						if showSecrets {
-							fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
-						} else {
-							fmt.Printf("Value match:\n\tSecret: %v\n\n", fullPath)
-						}
+					} else {
+						vc.secretMatch(dirEntry, fullPath, searchObject, valueStringType, key, fmt.Sprint(value))
 					}
 
 				}
