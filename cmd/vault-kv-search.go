@@ -166,9 +166,12 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 
 					if version > 1 {
 						fullPath = strings.Replace(fullPath, "/data", "", 1)
-
-						for key, v := range value.(map[string]interface{}) {
-							vc.secretMatch(dirEntry, fullPath, searchObject, valueStringType, key, fmt.Sprint(v))
+						switch v := value.(type) {
+						case map[string]interface{}:
+							for key, v2 := range v {
+								vc.secretMatch(dirEntry, fullPath, searchObject, valueStringType, key, fmt.Sprint(v2))
+							}
+						default:
 						}
 
 					} else {

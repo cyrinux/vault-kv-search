@@ -20,3 +20,9 @@ export VAULT_TOKEN=$(cat ~/.vault-token)
 - Search keys and values for substring 'example.com':
 
   `> vault-kv-search --search=value --search=key secret/ example.com`
+
+- Search secret name containing substring 'sshkeys':
+
+  `> vault-kv-search --search=path secret/ sshkeys`
+
+- To display the secrets, and not only the vault path, use the `--showsecrets` parameter.
