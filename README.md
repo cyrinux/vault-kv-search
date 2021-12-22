@@ -1,5 +1,7 @@
 # vault-kv-search [![CircleCI](https://circleci.com/gh/cyrinux/vault-kv-search.svg?style=svg)](https://circleci.com/gh/cyrinux/vault-kv-search)
 
+This tool is compatible with secrets kv v1 and v2.
+
 ## Example Usage
 
 - Export or prepend command with VAULT_ADDR and your VAULT_TOKEN

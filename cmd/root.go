@@ -1,3 +1,5 @@
+package cmd
+
 /*
 Copyright © 2021 NAME HERE <EMAIL ADDRESS>
 
@@ -13,7 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
 
 import (
 	"fmt"
@@ -43,8 +44,8 @@ func checkRequiredFlags(cmd *cobra.Command) error {
 	return nil
 }
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
+// RootCmd represents the base command when called without any subcommands
+var RootCmd = &cobra.Command{
 	Use:   "vault-kv-search [flags] search-path substring",
 	Short: "Search Hashicorp Vault",
 	Long: `Search for a substring in Hashicorp Vault
@@ -63,16 +64,16 @@ Recursively search Hashicorp Vault for substring`,
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	cobra.CheckErr(rootCmd.Execute())
+	cobra.CheckErr(RootCmd.Execute())
 }
 
 var searchObjects []string
 var showSecrets bool
 
 func init() {
-	rootCmd.Flags().BoolP("help", "h", false, "Help message")
-	rootCmd.Flags().BoolVarP(&showSecrets, "showsecrets", "s", false, "Show secrets values")
-	rootCmd.Flags().StringSliceVar(&searchObjects, "search", []string{"value"}, "Which Vault objects to "+
+	// RootCmd.Flags().BoolP("help", "h", false, "Help message")
+	RootCmd.Flags().BoolVarP(&showSecrets, "showsecrets", "s", false, "Show secrets values")
+	RootCmd.Flags().StringSliceVar(&searchObjects, "search", []string{"value"}, "Which Vault objects to "+
 		"search against. Choices are any and all of the following 'key,value,path'. Can be specified multiple times or "+
 		"once using format CSV. Defaults to 'value'")
 
