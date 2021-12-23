@@ -50,7 +50,8 @@ var RootCmd = &cobra.Command{
 	Short: "Search Hashicorp Vault",
 	Long: `Search for a substring in Hashicorp Vault
 
-Recursively search Hashicorp Vault for substring`,
+Recursively search Hashicorp Vault for substring
+Regex are supported`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return checkRequiredFlags(cmd)
 	},
@@ -69,9 +70,11 @@ func Execute() {
 
 var searchObjects []string
 var showSecrets bool
+var regexSupport bool
 
 func init() {
 	RootCmd.Flags().BoolVarP(&showSecrets, "showsecrets", "s", false, "Show secrets values")
+	RootCmd.Flags().BoolVarP(&regexSupport, "regex", "r", false, "Enable searching regex substring")
 	RootCmd.Flags().StringSliceVar(&searchObjects, "search", []string{"value"}, "Which Vault objects to "+
 		"search against. Choices are any and all of the following 'key,value,path'. Can be specified multiple times or "+
 		"once using format CSV. Defaults to 'value'")

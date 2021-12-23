@@ -83,32 +83,60 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 	vc.wg.Wait()
 }
 
-func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObject string, key string, value string) {
-	match, _ := regexp.MatchString(vc.searchString, dirEntry)
-	if match && searchObject == "path" {
-		if vc.showSecrets {
-			fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
-		} else {
-			fmt.Printf("Path match:\n\tSecret: %v\n\n", fullPath)
+func (vc *vaultClient) secretMatch(regexSupport bool, dirEntry string, fullPath string, searchObject string, key string, value string) {
+	if regexSupport {
+		match, _ := regexp.MatchString(vc.searchString, dirEntry)
+		if match && searchObject == "path" {
+			if vc.showSecrets {
+				fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
+			} else {
+				fmt.Printf("Path match:\n\tSecret: %v\n\n", fullPath)
+			}
 		}
-	}
 
-	match, _ = regexp.MatchString(vc.searchString, key)
-	if match && searchObject == "key" {
-		if vc.showSecrets {
-			fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
-		} else {
-			fmt.Printf("Key match:\n\tSecret: %v\n\n", fullPath)
+		match, _ = regexp.MatchString(vc.searchString, key)
+		if match && searchObject == "key" {
+			if vc.showSecrets {
+				fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
+			} else {
+				fmt.Printf("Key match:\n\tSecret: %v\n\n", fullPath)
+			}
 		}
-	}
 
-	match, _ = regexp.MatchString(vc.searchString, value)
-	if match && searchObject == "value" {
-		if vc.showSecrets {
-			fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
-		} else {
-			fmt.Printf("Value match:\n\tSecret: %v\n\n", fullPath)
+		match, _ = regexp.MatchString(vc.searchString, value)
+		if match && searchObject == "value" {
+			if vc.showSecrets {
+				fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+			} else {
+				fmt.Printf("Value match:\n\tSecret: %v\n\n", fullPath)
+			}
 		}
+
+	} else {
+		if strings.Contains(dirEntry, vc.searchString) && searchObject == "path" {
+			if vc.showSecrets {
+				fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
+			} else {
+				fmt.Printf("Path match:\n\tSecret: %v\n\n", fullPath)
+			}
+		}
+
+		if strings.Contains(key, vc.searchString) && searchObject == "key" {
+			if vc.showSecrets {
+				fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
+			} else {
+				fmt.Printf("Key match:\n\tSecret: %v\n\n", fullPath)
+			}
+		}
+
+		if strings.Contains(value, vc.searchString) && searchObject == "value" {
+			if vc.showSecrets {
+				fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+			} else {
+				fmt.Printf("Value match:\n\tSecret: %v\n\n", fullPath)
+			}
+		}
+
 	}
 }
 
@@ -138,7 +166,7 @@ func (vc *vaultClient) digDeeper(version int, data map[string]interface{}, dirEn
 			os.Exit(1)
 		}
 		// Search matches
-		vc.secretMatch(dirEntry, fullPath, searchObject, key, valueStringType)
+		vc.secretMatch(regexSupport, dirEntry, fullPath, searchObject, key, valueStringType)
 	}
 
 	return key, valueStringType
