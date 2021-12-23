@@ -6,6 +6,7 @@ import (
 	"fmt"
 	vault "github.com/hashicorp/vault/api"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -83,7 +84,8 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 }
 
 func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObject string, key string, value string) {
-	if strings.Contains(dirEntry, vc.searchString) && searchObject == "path" {
+	match, _ := regexp.MatchString(vc.searchString, dirEntry)
+	if match && searchObject == "path" {
 		if vc.showSecrets {
 			fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
 		} else {
@@ -91,7 +93,8 @@ func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObjec
 		}
 	}
 
-	if strings.Contains(key, vc.searchString) && searchObject == "key" {
+	match, _ = regexp.MatchString(vc.searchString, key)
+	if match && searchObject == "key" {
 		if vc.showSecrets {
 			fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
 		} else {
@@ -99,7 +102,8 @@ func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObjec
 		}
 	}
 
-	if strings.Contains(value, vc.searchString) && searchObject == "value" {
+	match, _ = regexp.MatchString(vc.searchString, value)
+	if match && searchObject == "value" {
 		if vc.showSecrets {
 			fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
 		} else {
