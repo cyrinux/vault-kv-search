@@ -19,6 +19,7 @@ type vaultClient struct {
 	searchString  string
 	showSecrets   bool
 	useRegex      bool
+	crawlingDelay int
 	searchObjects []string
 	wg            sync.WaitGroup
 }
@@ -44,7 +45,7 @@ func (vc *vaultClient) getKvVersion(path string) (int, error) {
 }
 
 // VaultKvSearch is the main function
-func VaultKvSearch(args []string, searchObjects []string, showSecrets bool, useRegex bool) {
+func VaultKvSearch(args []string, searchObjects []string, showSecrets bool, useRegex bool, crawlingDelay int) {
 	config := vault.DefaultConfig()
 	config.Timeout = time.Second * 5
 
@@ -61,6 +62,7 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool, useR
 		searchString:  args[1],
 		searchObjects: searchObjects,
 		showSecrets:   showSecrets, //pragma: allowlist secret
+		crawlingDelay: crawlingDelay,
 		useRegex:      useRegex,
 		wg:            sync.WaitGroup{},
 	}
@@ -158,6 +160,10 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 	}
 
 	for _, x := range pathList.Data["keys"].([]interface{}) {
+
+		// Slow down a little the crawling
+		time.Sleep(time.Duration(crawlingDelay) * time.Millisecond)
+
 		dirEntry := x.(string)
 		fullPath := fmt.Sprintf("%s%s", path, dirEntry)
 		if strings.HasSuffix(dirEntry, "/") {
@@ -184,9 +190,6 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 				}
 				vc.digDeeper(version, secretInfo.Data, dirEntry, fullPath, searchObject)
 			}
-
-			// Slow down a little the crawling
-			time.Sleep(15 * time.Millisecond)
 		}
 	}
 }
