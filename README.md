@@ -23,6 +23,10 @@ This tool is compatible with secrets kv v1 and v2.
 
   `> vault-kv-search --search=value --search=key secret/ example.com`
 
+- Search keys and values for substring starting with 'example.com':
+
+  `> vault-kv-search --search=value --search=key --regex secret/ '^example.com'`
+
 - Search secret name containing substring 'sshkeys':
 
   `> vault-kv-search --search=path secret/ sshkeys`
