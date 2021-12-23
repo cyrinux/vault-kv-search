@@ -87,27 +87,20 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool, useR
 
 func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObject string, key string, value string) {
 	search := map[string]string{"path": dirEntry, "key": key, "value": value}
-	for sk, sv := range search {
-		var match = false
+	term := search[searchObject]
+	found := false
 
-		if vc.useRegex {
-			match, _ = regexp.MatchString(vc.searchString, sv)
-			if match && searchObject == sk {
-				fmt.Printf("%s match:\n\tSecret: %s\n", strings.Title(sk), fullPath)
-			}
+	if vc.useRegex {
+		found, _ = regexp.MatchString(vc.searchString, term)
+	} else {
+		found = strings.Contains(term, vc.searchString)
+	}
+
+	if found {
+		if vc.showSecrets {
+			fmt.Printf("%s match:\n\tSecret: %s\n\tKey: %s\n\tValue: %s\n\n", strings.Title(searchObject), fullPath, key, value)
 		} else {
-			if strings.Contains(sv, vc.searchString) && searchObject == sk {
-				match = true
-				fmt.Printf("%s match:\n\tSecret: %s\n", strings.Title(sk), fullPath)
-			}
-		}
-
-		if match {
-			if vc.showSecrets {
-				fmt.Printf("\tKey: %s\n\tValue: %s\n\n", key, value)
-			} else {
-				fmt.Printf("\n")
-			}
+			fmt.Printf("%s match:\n\tSecret: %s\n\n", strings.Title(searchObject), fullPath)
 		}
 	}
 }
@@ -190,7 +183,5 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 				vc.digDeeper(version, secretInfo.Data, dirEntry, fullPath, searchObject)
 			}
 		}
-
-		// time.Sleep(15 * time.Millisecond)
 	}
 }
