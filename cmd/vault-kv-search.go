@@ -50,7 +50,9 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool, useR
 
 	client, err := vault.NewClient(config)
 	if err != nil {
-		fmt.Printf("Failed to create vault client: %s\n", err)
+		err = fmt.Errorf("failed to create vault client: %w", err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	vc := vaultClient{
@@ -182,6 +184,9 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 				}
 				vc.digDeeper(version, secretInfo.Data, dirEntry, fullPath, searchObject)
 			}
+
+			// Slow down a little the crawling
+			time.Sleep(15 * time.Millisecond)
 		}
 	}
 }
