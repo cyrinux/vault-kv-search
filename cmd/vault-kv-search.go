@@ -83,8 +83,8 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 	vc.wg.Wait()
 }
 
-func (vc *vaultClient) secretMatch(regex bool, dirEntry string, fullPath string, searchObject string, key string, value string) {
-	if regex {
+func (vc *vaultClient) secretMatch(regexSupport bool, dirEntry string, fullPath string, searchObject string, key string, value string) {
+	if regexSupport {
 		match, _ := regexp.MatchString(vc.searchString, dirEntry)
 		if match && searchObject == "path" {
 			if vc.showSecrets {
@@ -166,7 +166,7 @@ func (vc *vaultClient) digDeeper(version int, data map[string]interface{}, dirEn
 			os.Exit(1)
 		}
 		// Search matches
-		vc.secretMatch(dirEntry, fullPath, searchObject, key, valueStringType)
+		vc.secretMatch(regexSupport, dirEntry, fullPath, searchObject, key, valueStringType)
 	}
 
 	return key, valueStringType
