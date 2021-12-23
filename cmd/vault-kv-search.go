@@ -104,7 +104,7 @@ func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObjec
 		if vc.showSecrets {
 			fmt.Printf("%s match:\n\tSecret: %s\n\tKey: %s\n\tValue: %s\n\n", strings.Title(searchObject), fullPath, key, value)
 		} else {
-			fmt.Printf("%s match:\n\tSecret: %s\n\n", strings.Title(searchObject), fullPath)
+			fmt.Printf("%s match:\n\tSecret: %s\n\tKey: %s\n\n", strings.Title(searchObject), fullPath, key)
 		}
 	}
 }
