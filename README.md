@@ -2,6 +2,8 @@
 
 This tool is compatible with secrets kv v1 and v2.
 
+This tool is compatible with secrets kv v1 and v2.
+
 ## Example Usage
 
 - Export or prepend command with VAULT_ADDR and your VAULT_TOKEN

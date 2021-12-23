@@ -58,7 +58,7 @@ Recursively search Hashicorp Vault for substring`,
 		VaultKvSearch(args, searchObjects, showSecrets)
 	},
 	Args:    cobra.ExactArgs(2),
-	Example: "vault-kv-search kv/ foo",
+	Example: "vault-kv-search secret/ foo",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -71,7 +71,6 @@ var searchObjects []string
 var showSecrets bool
 
 func init() {
-	// RootCmd.Flags().BoolP("help", "h", false, "Help message")
 	RootCmd.Flags().BoolVarP(&showSecrets, "showsecrets", "s", false, "Show secrets values")
 	RootCmd.Flags().StringSliceVar(&searchObjects, "search", []string{"value"}, "Which Vault objects to "+
 		"search against. Choices are any and all of the following 'key,value,path'. Can be specified multiple times or "+

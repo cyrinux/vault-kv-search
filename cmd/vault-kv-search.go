@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	vault "github.com/hashicorp/vault/api"
 	"os"
@@ -14,31 +15,30 @@ import (
 type vaultClient struct {
 	logical       *vault.Logical
 	sys           *vault.Sys
-	configInput   *vault.MountConfigInput
 	searchString  string
 	showSecrets   bool
 	searchObjects []string
 	wg            sync.WaitGroup
 }
 
-func (vc *vaultClient) getKvVersion(path string) int {
-	secret := strings.Split(path, "/")[0]
+func (vc *vaultClient) getKvVersion(path string) (int, error) {
 	mounts, err := vc.sys.ListMounts()
-	var version int
 	if err != nil {
-		fmt.Printf("Error while getting mounts: %v\n", err)
+		err = fmt.Errorf("error while getting mounts: %w", err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	secret := strings.Split(path, "/")[0]
 	for mount := range mounts {
 		if strings.Contains(mount, secret) {
-			version, _ = strconv.Atoi(mounts[mount].Options["version"])
+			version, _ := strconv.Atoi(mounts[mount].Options["version"])
+			fmt.Printf("Store path %q, version: %v\n", secret, version)
+			return version, nil
 		}
 	}
 
-	fmt.Printf("Store path %q, version: %v\n", secret, version)
-
-	return version
+	return 0, errors.New("can't find secret store version")
 }
 
 // VaultKvSearch is the main function
@@ -61,7 +61,11 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 	}
 
 	startPath := args[0]
-	version := vc.getKvVersion(startPath)
+	version, err := vc.getKvVersion(startPath)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	fmt.Printf("Searching for substring '%s' against: %v\n", args[1], searchObjects)
 	fmt.Printf("Start path: %s\n", startPath)
@@ -79,10 +83,9 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 }
 
 func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObject string, key string, value string) {
-
 	if strings.Contains(dirEntry, vc.searchString) && searchObject == "path" {
 		if vc.showSecrets {
-			fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+			fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
 		} else {
 			fmt.Printf("Path match:\n\tSecret: %v\n\n", fullPath)
 		}
@@ -90,7 +93,7 @@ func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObjec
 
 	if strings.Contains(key, vc.searchString) && searchObject == "key" {
 		if vc.showSecrets {
-			fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
+			fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
 		} else {
 			fmt.Printf("Key match:\n\tSecret: %v\n\n", fullPath)
 		}
@@ -103,7 +106,6 @@ func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObjec
 			fmt.Printf("Value match:\n\tSecret: %v\n\n", fullPath)
 		}
 	}
-
 }
 
 func (vc *vaultClient) digDeeper(version int, data map[string]interface{}, dirEntry string, fullPath string, searchObject string) (key string, value string) {
