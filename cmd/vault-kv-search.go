@@ -160,6 +160,10 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 	}
 
 	for _, x := range pathList.Data["keys"].([]interface{}) {
+
+		// Slow down a little the crawling
+		time.Sleep(time.Duration(crawlingDelay) * time.Millisecond)
+
 		dirEntry := x.(string)
 		fullPath := fmt.Sprintf("%s%s", path, dirEntry)
 		if strings.HasSuffix(dirEntry, "/") {
@@ -186,9 +190,6 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 				}
 				vc.digDeeper(version, secretInfo.Data, dirEntry, fullPath, searchObject)
 			}
-
-			// Slow down a little the crawling
-			time.Sleep(time.Duration(crawlingDelay) * time.Millisecond)
 		}
 	}
 }
