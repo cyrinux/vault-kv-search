@@ -18,6 +18,7 @@ type vaultClient struct {
 	sys           *vault.Sys
 	searchString  string
 	showSecrets   bool
+	useRegex      bool
 	searchObjects []string
 	wg            sync.WaitGroup
 }
@@ -43,7 +44,7 @@ func (vc *vaultClient) getKvVersion(path string) (int, error) {
 }
 
 // VaultKvSearch is the main function
-func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
+func VaultKvSearch(args []string, searchObjects []string, showSecrets bool, useRegex bool) {
 	config := vault.DefaultConfig()
 	config.Timeout = time.Second * 5
 
@@ -58,6 +59,7 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 		searchString:  args[1],
 		searchObjects: searchObjects,
 		showSecrets:   showSecrets, //pragma: allowlist secret
+		useRegex:      useRegex,
 		wg:            sync.WaitGroup{},
 	}
 
@@ -83,60 +85,30 @@ func VaultKvSearch(args []string, searchObjects []string, showSecrets bool) {
 	vc.wg.Wait()
 }
 
-func (vc *vaultClient) secretMatch(regexSupport bool, dirEntry string, fullPath string, searchObject string, key string, value string) {
-	if regexSupport {
-		match, _ := regexp.MatchString(vc.searchString, dirEntry)
-		if match && searchObject == "path" {
-			if vc.showSecrets {
-				fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
-			} else {
-				fmt.Printf("Path match:\n\tSecret: %v\n\n", fullPath)
+func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObject string, key string, value string) {
+	search := map[string]string{"path": dirEntry, "key": key, "value": value}
+	for sk, sv := range search {
+		var match = false
+
+		if vc.useRegex {
+			match, _ = regexp.MatchString(vc.searchString, sv)
+			if match && searchObject == sk {
+				fmt.Printf("%s match:\n\tSecret: %s\n", strings.Title(sk), fullPath)
+			}
+		} else {
+			if strings.Contains(sv, vc.searchString) && searchObject == sk {
+				match = true
+				fmt.Printf("%s match:\n\tSecret: %s\n", strings.Title(sk), fullPath)
 			}
 		}
 
-		match, _ = regexp.MatchString(vc.searchString, key)
-		if match && searchObject == "key" {
+		if match {
 			if vc.showSecrets {
-				fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
+				fmt.Printf("\tKey: %s\n\tValue: %s\n\n", key, value)
 			} else {
-				fmt.Printf("Key match:\n\tSecret: %v\n\n", fullPath)
+				fmt.Printf("\n")
 			}
 		}
-
-		match, _ = regexp.MatchString(vc.searchString, value)
-		if match && searchObject == "value" {
-			if vc.showSecrets {
-				fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
-			} else {
-				fmt.Printf("Value match:\n\tSecret: %v\n\n", fullPath)
-			}
-		}
-
-	} else {
-		if strings.Contains(dirEntry, vc.searchString) && searchObject == "path" {
-			if vc.showSecrets {
-				fmt.Printf("Path match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
-			} else {
-				fmt.Printf("Path match:\n\tSecret: %v\n\n", fullPath)
-			}
-		}
-
-		if strings.Contains(key, vc.searchString) && searchObject == "key" {
-			if vc.showSecrets {
-				fmt.Printf("Key match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n\n", fullPath, key, value)
-			} else {
-				fmt.Printf("Key match:\n\tSecret: %v\n\n", fullPath)
-			}
-		}
-
-		if strings.Contains(value, vc.searchString) && searchObject == "value" {
-			if vc.showSecrets {
-				fmt.Printf("Value match:\n\tSecret: %v\n\tKey: %v\n\tValue: %v\n", fullPath, key, value)
-			} else {
-				fmt.Printf("Value match:\n\tSecret: %v\n\n", fullPath)
-			}
-		}
-
 	}
 }
 
@@ -166,7 +138,7 @@ func (vc *vaultClient) digDeeper(version int, data map[string]interface{}, dirEn
 			os.Exit(1)
 		}
 		// Search matches
-		vc.secretMatch(regexSupport, dirEntry, fullPath, searchObject, key, valueStringType)
+		vc.secretMatch(dirEntry, fullPath, searchObject, key, valueStringType)
 	}
 
 	return key, valueStringType
@@ -202,7 +174,7 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 
 		} else {
 			if version > 1 {
-				fullPath = strings.Replace(fullPath, "/metadata", "/data", 1)
+				fullPath = strings.Replace(fullPath, "/metadata/", "/data/", 1)
 			}
 
 			secretInfo, err := vc.logical.Read(fullPath)
@@ -216,8 +188,9 @@ func (vc *vaultClient) readLeafs(path string, searchObjects []string, version in
 					fullPath = strings.Replace(fullPath, "/data", "", 1)
 				}
 				vc.digDeeper(version, secretInfo.Data, dirEntry, fullPath, searchObject)
-
 			}
 		}
+
+		// time.Sleep(15 * time.Millisecond)
 	}
 }
