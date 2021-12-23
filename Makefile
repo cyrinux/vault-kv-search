@@ -106,6 +106,8 @@ version:
 	@echo $(VERSION)
 
 
+# Release
+
 .PHONY: release
 release:
 	@./scripts/release.sh $(shell git tag | tail -1 | sed 's/v//')

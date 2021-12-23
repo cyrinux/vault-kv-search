@@ -71,7 +71,6 @@ var searchObjects []string
 var showSecrets bool
 
 func init() {
-	// RootCmd.Flags().BoolP("help", "h", false, "Help message")
 	RootCmd.Flags().BoolVarP(&showSecrets, "showsecrets", "s", false, "Show secrets values")
 	RootCmd.Flags().StringSliceVar(&searchObjects, "search", []string{"value"}, "Which Vault objects to "+
 		"search against. Choices are any and all of the following 'key,value,path'. Can be specified multiple times or "+
