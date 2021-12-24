@@ -32,3 +32,5 @@ This tool is compatible with secrets kv v1 and v2.
   `> vault-kv-search --search=path secret/ sshkeys`
 
 - To display the secrets, and not only the vault path, use the `--showsecrets` parameter.
+
+- To display output as JSON use `--json` parameter.
