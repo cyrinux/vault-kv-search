@@ -113,7 +113,7 @@ func (vc *vaultClient) secretMatch(dirEntry string, fullPath string, searchObjec
 	}
 
 	if found {
-		match := secretMatched{fullPath, key, value, searchObject}
+		match := secretMatched{searchObject, fullPath, key, value}
 		vc.showMatch(match)
 	}
 }
